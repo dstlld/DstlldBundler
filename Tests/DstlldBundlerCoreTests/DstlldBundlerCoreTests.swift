@@ -125,6 +125,7 @@ import Testing
             .write(to: app.appending(path: "Info.plist"))
         try Data("hello".utf8).write(to: app.appending(path: "Resources/greeting.txt"))
         try Data("nested".utf8).write(to: app.appending(path: "Resources/Nested/inner.txt"))
+        try Data().write(to: app.appending(path: "Resources/.gitkeep"))
         try FileManager.default.createDirectory(at: root.appending(path: "build"), withIntermediateDirectories: true)
         try FileManager.default.copyItem(at: URL(filePath: "/bin/echo"), to: root.appending(path: "build/Echo"))
     }
@@ -147,6 +148,7 @@ import Testing
         #expect(FileManager.default.fileExists(atPath: contents.appending(path: "Resources/greeting.txt").path))
         #expect(FileManager.default.fileExists(atPath: contents.appending(path: "Resources/Nested/inner.txt").path))
         #expect(try String(contentsOf: contents.appending(path: "PkgInfo"), encoding: .utf8) == "APPL????")
+        #expect(!FileManager.default.fileExists(atPath: contents.appending(path: "Resources/.gitkeep").path))
         #expect(result.executable == contents.appending(path: "MacOS/Echo"))
 
         let verify = try run("/usr/bin/codesign", ["--verify", "--strict", result.app.path])

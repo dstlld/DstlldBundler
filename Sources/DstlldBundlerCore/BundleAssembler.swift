@@ -54,8 +54,9 @@ public enum BundleAssembler {
 
         if files.fileExists(atPath: spec.resourcesDirectory.path) {
             try attempt("could not copy App/\(spec.productName)/Resources") {
-                for item in try files.contentsOfDirectory(at: spec.resourcesDirectory, includingPropertiesForKeys: nil)
-                where item.lastPathComponent != ".DS_Store" {
+                // Hidden files are left out: `.gitkeep`, `.DS_Store`.
+                for item in try files.contentsOfDirectory(at: spec.resourcesDirectory, includingPropertiesForKeys: nil,
+                                                          options: .skipsHiddenFiles) {
                     try files.copyItem(at: item, to: resources.appending(path: item.lastPathComponent))
                 }
             }
