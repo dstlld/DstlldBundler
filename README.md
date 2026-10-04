@@ -98,4 +98,4 @@ To try the plugin from start to finish, run `swift package bundle-app` in `Fixtu
 
 Pre-1.0. There are no tagged releases, so depend on the `main` branch. The API may change without notice.
 
-No licence has been granted yet, so all rights are reserved.
+MIT licence. See [LICENSE](LICENSE).
