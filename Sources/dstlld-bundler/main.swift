@@ -2,21 +2,39 @@
 //  main.swift
 //  dstlld-bundler
 //
-//  Prints warnings as diagnostics, then the `.app`'s path as the last line of standard output, which
-//  is how callers find it.
+//  Prints warnings as diagnostics, then the `.app`'s path (or, for `export`, the `.dmg`'s) as the
+//  last line of standard output, which is how callers find it. An export's steps are printed as
+//  `note:` lines as they start, because notarizing can take minutes.
 //
 
 import DstlldBundlerCore
 import Foundation
 
+func printToStandardError(_ line: String) {
+    FileHandle.standardError.write(Data((line + "\n").utf8))
+}
+
 do {
-    let spec = try ToolArguments.parse(Array(CommandLine.arguments.dropFirst()))
-    let result = try BundleAssembler.assemble(spec)
-    for warning in result.warnings {
-        FileHandle.standardError.write(Data((warning + "\n").utf8))
+    let arguments = Array(CommandLine.arguments.dropFirst())
+    if arguments.first == "export" {
+        let spec = try ToolArguments.parseExport(Array(arguments.dropFirst()))
+        let result = try ExportPipeline.run(spec) { step in
+            print("note: \(step)")
+            fflush(stdout)
+        }
+        for warning in result.warnings {
+            printToStandardError(warning)
+        }
+        print(result.diskImage.path)
+    } else {
+        let spec = try ToolArguments.parse(arguments)
+        let result = try BundleAssembler.assemble(spec)
+        for warning in result.warnings {
+            printToStandardError(warning)
+        }
+        print(result.app.path)
     }
-    print(result.app.path)
 } catch {
-    FileHandle.standardError.write(Data(("\(error)\n").utf8))
+    printToStandardError("\(error)")
     exit(1)
 }

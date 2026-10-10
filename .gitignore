@@ -6,3 +6,4 @@ DerivedData/
 .DS_Store
 Fixtures/*/.build/
 Fixtures/*/Package.resolved
+Fixtures/*/Exports/

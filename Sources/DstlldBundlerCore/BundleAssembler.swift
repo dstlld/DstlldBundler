@@ -8,6 +8,7 @@
 //    <Product>.app/Contents/PkgInfo
 //    <Product>.app/Contents/MacOS/<executable>
 //    <Product>.app/Contents/Resources/…     (App/<Product>/Resources, then any SwiftPM bundles)
+//    <Product>.app/Contents/Resources/AppIcon.icns, Assets.car   (from App/<Product>/AppIcon.icon)
 //
 //  Everything is copied, never linked: codesign seals the bundle's own files.
 //
@@ -27,7 +28,7 @@ public enum BundleAssembler {
             throw BundlerError("the built executable is missing: \(spec.executable.path)")
         }
         let executableName = spec.executable.lastPathComponent
-        let info = try InfoPlist.load(spec.infoPlistFile, executableName: executableName, productName: spec.productName)
+        var info = try InfoPlist.load(spec.infoPlistFile, executableName: executableName, productName: spec.productName)
         let entitlements = try Entitlements.load(
             spec.entitlementsFile,
             configuration: spec.configuration,
@@ -47,8 +48,6 @@ public enum BundleAssembler {
             try files.createDirectory(at: macOS, withIntermediateDirectories: true)
             try files.createDirectory(at: resources, withIntermediateDirectories: true)
             try files.copyItem(at: spec.executable, to: bundledExecutable)
-            let plist = try PropertyListSerialization.data(fromPropertyList: info, format: .xml, options: 0)
-            try plist.write(to: contents.appending(path: "Info.plist"))
             try Data("APPL????".utf8).write(to: contents.appending(path: "PkgInfo"))
         }
 
@@ -74,6 +73,21 @@ public enum BundleAssembler {
             ))
         }
 
+        let minimumSystemVersion = info["LSMinimumSystemVersion"] as? String ?? "13.0"
+        switch IconCompiler.compile(icon: spec.iconFile, into: resources, minimumSystemVersion: minimumSystemVersion) {
+        case .noIcon:
+            break
+        case .compiled(let keys):
+            info.merge(keys) { _, compiled in compiled }
+        case .skipped(let warning):
+            warnings.append(warning)
+        }
+
+        try attempt("could not write Info.plist") {
+            let plist = try PropertyListSerialization.data(fromPropertyList: info, format: .xml, options: 0)
+            try plist.write(to: contents.appending(path: "Info.plist"))
+        }
+
         if sign {
             let entitlementsFile = spec.output.deletingLastPathComponent()
                 .appending(path: "\(spec.output.deletingPathExtension().lastPathComponent).entitlements.plist")
@@ -82,7 +96,8 @@ public enum BundleAssembler {
                 try data.write(to: entitlementsFile)
             }
             let identifier = info[InfoPlist.bundleIdentifierKey] as? String ?? ""
-            try CodeSigner.sign(bundle: spec.output, entitlements: entitlementsFile, identifier: identifier)
+            try CodeSigner.sign(
+                bundle: spec.output, entitlements: entitlementsFile, identifier: identifier, identity: spec.signing)
         }
         return BundleResult(app: spec.output, executable: bundledExecutable, warnings: warnings)
     }

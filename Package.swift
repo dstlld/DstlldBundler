@@ -9,6 +9,8 @@
 //    DstlldBundlerCore — the logic: Info.plist, entitlements, bundle layout, codesign. Testable.
 //    dstlld-bundler    — a small tool wrapping the core, which the plugin runs.
 //    BundleApp         — the `bundle-app` command plugin: `swift package bundle-app --product MyApp`.
+//    ExportApp         — the `export-app` command plugin, which makes a signed, notarized disk image:
+//                        `swift package --disable-sandbox export-app --product MyApp`.
 //
 //  The contract with a project is the `App/<Product>/` folder. See README.md.
 //
@@ -20,6 +22,7 @@ let package = Package(
     platforms: [.macOS(.v13)],
     products: [
         .plugin(name: "BundleApp", targets: ["BundleApp"]),
+        .plugin(name: "ExportApp", targets: ["ExportApp"]),
         .library(name: "DstlldBundlerCore", targets: ["DstlldBundlerCore"]),
     ],
     targets: [
@@ -38,6 +41,16 @@ let package = Package(
                 intent: .custom(
                     verb: "bundle-app",
                     description: "Build an executable product and wrap it in a signed macOS .app"
+                )
+            ),
+            dependencies: ["dstlld-bundler"]
+        ),
+        .plugin(
+            name: "ExportApp",
+            capability: .command(
+                intent: .custom(
+                    verb: "export-app",
+                    description: "Build a release of an app, sign and notarize it, and put it on a disk image"
                 )
             ),
             dependencies: ["dstlld-bundler"]

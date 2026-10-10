@@ -26,6 +26,8 @@ public struct BundleSpec: Sendable, Equatable {
     public var resourceBundles: [URL]
     /// Adds `com.apple.security.get-task-allow` in debug builds, so a debugger can attach.
     public var getTaskAllow: Bool
+    /// Ad hoc for running here; a certificate for an export.
+    public var signing: SigningIdentity
 
     public init(
         productName: String,
@@ -34,7 +36,8 @@ public struct BundleSpec: Sendable, Equatable {
         output: URL,
         configuration: BuildConfiguration = .debug,
         resourceBundles: [URL] = [],
-        getTaskAllow: Bool = true
+        getTaskAllow: Bool = true,
+        signing: SigningIdentity = .adHoc
     ) {
         self.productName = productName
         self.executable = executable
@@ -43,9 +46,12 @@ public struct BundleSpec: Sendable, Equatable {
         self.configuration = configuration
         self.resourceBundles = resourceBundles
         self.getTaskAllow = getTaskAllow
+        self.signing = signing
     }
 
     public var infoPlistFile: URL { appDirectory.appending(path: "Info.plist") }
     public var entitlementsFile: URL { appDirectory.appending(path: "\(productName).entitlements") }
     public var resourcesDirectory: URL { appDirectory.appending(path: "Resources", directoryHint: .isDirectory) }
+    /// An Icon Composer icon, compiled into `Contents/Resources` if it exists.
+    public var iconFile: URL { appDirectory.appending(path: "\(IconCompiler.iconName).icon", directoryHint: .isDirectory) }
 }
